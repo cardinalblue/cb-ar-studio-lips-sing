@@ -45,6 +45,8 @@ class BaseState {
             .child("facetracker0");
         this.canvas2d = this.world
             .child("2DCanvas0")
+        this.bgm = this.world
+            .child("bgm")
 
         // Disposable pool.
         this.disposables = [];
@@ -107,15 +109,9 @@ class GamingState extends BaseState {
         D.log("enter: GamingState")
         
         // Play BGM.
-        this.bgm = this.world.child("bgm")
-        Audio.play(Scene.root
-            .child("Device")
-            .child("Camera")
-            .child("Focal Distance")
-            .child("bgm"))
-        D.log(this.bgm)
+        Audio.play(this.bgm)
 
-        this.gameTimeout = 9000;
+        this.gameTimeout = 90000;
         this.samplingInterval = 400;
         this.samplingCounter = 0;
         this.samplingQuota = 0;
@@ -168,6 +164,8 @@ class GameOverState extends BaseState {
     enter() {
         D.log("enter: GameOverState")
         D.log("score=" + GameResult.score)
+
+        Audio.stopAll(this.bgm)
     }
 
     exit() {
@@ -176,8 +174,14 @@ class GameOverState extends BaseState {
     }
 }
 
-new IdleState()
-    .next(new GamingState()
-        .next(new GameOverState()))
-    .enter()
+const idleState = new IdleState()
+const gamingState = new GamingState()
+const gameOverState = new GameOverState()
+
+idleState.next(gamingState)
+gamingState.next(gameOverState)
+gameOverState.next(idleState)
+
+// Start!!!
+idleState.enter()
 
