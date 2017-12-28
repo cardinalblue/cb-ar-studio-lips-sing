@@ -27,6 +27,12 @@ const TouchGestures = require('TouchGestures');
 const Animation = require('Animation');
 const FaceTracking = require('FaceTracking');
 const Audio = require('Audio');
+const Time = require('Time');
+
+// The singleton game result state.
+const GameResult = {
+    score: 0
+}
 
 class BaseState {
 
@@ -51,7 +57,6 @@ class BaseState {
     exit() {
         // Dispose the disposables.
         this.disposables.forEach((d) => {
-            D.log(d)
             d.unsubscribe();
         });
     }
@@ -102,22 +107,77 @@ class GamingState extends BaseState {
         D.log("enter: GamingState")
         
         // Play BGM.
+        this.bgm = this.world.child("bgm")
         Audio.play(Scene.root
             .child("Device")
             .child("Camera")
             .child("Focal Distance")
             .child("bgm"))
+        D.log(this.bgm)
 
-        // this.faceTracker.face(0).mouth.openness
+        this.gameTimeout = 9000;
+        this.samplingInterval = 400;
+        this.samplingCounter = 0;
+        this.samplingQuota = 0;
+
+        // Game timeout.
+        this.disposables.push(Time
+            .setTimeout(() => {
+                this.gotoNext();
+        }, this.gameTimeout));
+
+        // BGM tempo observable.
+        this.disposables.push(Time.ms
+            .interval(this.samplingInterval)
+            .subscribe((elapsedTime) => {
+            //   D.log(Time.ms.lastValue);
+            ++this.samplingQuota;
+            // D.log(FaceTracking
+            //     .face(0)
+            //     .mouth
+            //     .openness.lastValue)
+          }));
+
+        // Mouth openess observable.
+        this.disposables.push(FaceTracking
+            .face(0)
+            .mouth
+            .openness
+            .monitor()
+            .subscribe((data) => {
+                if (this.samplingQuota > 0) {
+                    --this.samplingQuota;
+
+                    const ts = this.samplingInterval * this.samplingCounter;
+                    D.log("\"" + ts + "\": " + data.newValue);
+
+                    // D.log(data)
+                    ++this.samplingCounter;
+                }
+            }))
     }
 
     exit() {
         D.log("exit: GamingState")
+        super.exit();
+    }
+}
+
+class GameOverState extends BaseState {
+
+    enter() {
+        D.log("enter: GameOverState")
+        D.log("score=" + GameResult.score)
+    }
+
+    exit() {
+        D.log("exit: GameOverState")
+        super.exit();
     }
 }
 
 new IdleState()
-    .next(new GamingState())
-    //     .next(GameOverState()))
+    .next(new GamingState()
+        .next(new GameOverState()))
     .enter()
 
