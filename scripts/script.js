@@ -111,6 +111,11 @@ class GamingState extends BaseState {
         // Play BGM.
         Audio.play(this.bgm)
 
+        // Show the main face mesh.
+        this.mainFaceMesh = this.faceTracker
+            .child("main_face_mesh");
+        this.mainFaceMesh.hidden = false;
+
         this.gameTimeout = 90000;
         this.samplingInterval = 400;
         this.samplingCounter = 0;
@@ -154,6 +159,9 @@ class GamingState extends BaseState {
     }
 
     exit() {
+        // Hide the main face mesh.
+        this.mainFaceMesh.hidden = true;
+
         D.log("exit: GamingState")
         super.exit();
     }
